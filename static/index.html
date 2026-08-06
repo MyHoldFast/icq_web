@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+  <title>ICQ Web Client</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .login-logo {
+      display: block;
+      margin: 0 auto 1rem auto;
+      max-width: 100%;
+      height: auto;
+      --logo-size: 150px;
+      width: var(--logo-size);
+      height: var(--logo-size);
+      object-fit: contain;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="login-screen" class="screen active">
+    <div class="login-box"><img src="/static/icons/logo.png" alt="ICQ Web" class="login-logo"><input type="text"
+        id="login-uin" placeholder="UIN (например, 12345678)" maxlength="16" autocomplete="username"><input
+        type="password" id="login-password" placeholder="Пароль" autocomplete="current-password"><button id="btn-login"
+        class="btn btn-primary btn-block"><span id="login-spinner" class="spinner hidden"></span><span
+          id="login-btn-text">Подключиться</span></button><button id="btn-open-register" class="link-button"
+        type="button">Зарегистрироваться</button>
+      <div id="login-error" class="error"></div>
+    </div>
+  </div>
+  <div id="app-screen" class="screen">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="user-info"><span id="my-uin">Offline</span><span id="my-status-icon"
+            class="status-icon"></span><span id="my-xstatus-icon" class="xstatus-icon hidden"></span></div>
+        <div class="header-actions"><button id="btn-profile" title="Моя анкета">👤</button><button id="btn-search"
+            title="Поиск">🔍</button><button id="btn-status" title="Статус">🌐</button><button id="btn-settings"
+            title="Настройки">⚙️</button><button id="btn-logout" title="Отключить">🔌</button></div>
+      </div>
+      <div class="sidebar-search"><input type="text" id="contact-filter" placeholder="Фильтр контактов…"><button
+          id="btn-toggle-offline" title="Скрыть не в сети">🙈</button></div>
+      <div class="contact-list" id="contact-list"></div>
+    </aside>
+    <main class="chat-area">
+      <div class="chat-placeholder" id="chat-placeholder">
+        <div class="placeholder-text">Выберите контакт для начала переписки</div>
+      </div>
+      <div class="chat-container hidden" id="chat-container">
+        <div class="chat-header"><button id="btn-back-mobile" class="btn-back-mobile" title="Назад к списку">←</button>
+          <div class="chat-header-info"><span class="chat-name-row"><span id="chat-name" class="chat-name"></span><span
+                id="chat-mute-icon" class="mute-icon hidden" title="Без звука и уведомлений">🔕</span></span><span
+              id="chat-status" class="chat-status"></span><span id="chat-client" class="chat-client"></span></div>
+          <div class="chat-header-actions"><button id="btn-user-info" title="Анкета">ℹ️</button><button
+              id="btn-add-stranger-chat" class="hidden" title="Добавить в контакты">➕</button><button
+              id="btn-request-auth" class="hidden" title="Запросить авторизацию">🔐</button><button
+              id="btn-clear-history" title="Очистить историю переписки">🧹</button></div>
+        </div>
+        <div class="messages" id="messages"></div>
+        <div class="typing-indicator" id="typing-indicator">печатает<span class="dots">...</span></div>
+        <div class="input-area">
+          <div class="smiley-panel hidden" id="smiley-panel"></div><button id="btn-smileys" type="button"
+            title="Смайлики">😊</button><textarea id="message-input" placeholder="Введите сообщение…"
+            rows="1"></textarea><button id="btn-send">➤</button>
+        </div>
+      </div>
+    </main>
+  </div>
+  <div class="modal hidden" id="modal-profile">
+    <div class="modal-content">
+      <div class="modal-header"><button class="modal-back">←</button>
+        <h2>Моя анкета</h2><button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body" id="profile-body"></div>
+      <div class="modal-footer"><button id="btn-save-profile" class="btn btn-primary">💾 Сохранить</button><button
+          id="btn-refresh-profile" class="btn btn-secondary">🔄 Обновить</button></div>
+    </div>
+  </div><input type="file" id="avatar-file-input" accept="image/png,image/jpeg,image/webp" class="hidden">
+  <div class="modal hidden" id="modal-avatar-crop">
+    <div class="modal-content modal-avatar-crop-content">
+      <div class="modal-header">
+        <h2>Обрезка аватарки</h2><button type="button" id="btn-avatar-crop-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="avatar-crop-stage" id="avatar-crop-stage"><img id="avatar-crop-img">
+          <div class="avatar-crop-ring"></div>
+        </div>
+        <p class="avatar-crop-hint">Перетащите фото одним пальцем, масштаб — двумя пальцами (на компьютере — колесо
+          мыши)</p>
+      </div>
+      <div class="modal-footer"><button id="btn-avatar-crop-cancel" class="btn btn-secondary">Отмена</button><button
+          id="btn-avatar-crop-save" class="btn btn-primary">✓ Готово</button></div>
+    </div>
+  </div>
+  <div class="modal hidden" id="modal-search">
+    <div class="modal-content">
+      <div class="modal-header"><button class="modal-back">←</button>
+        <h2>Поиск пользователей</h2><button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="search-form"><input type="text" id="search-uin" placeholder="UIN"><input type="text"
+            id="search-nick" placeholder="Ник"><input type="text" id="search-first" placeholder="Имя"><input type="text"
+            id="search-last" placeholder="Фамилия"><input type="text" id="search-email" placeholder="Email"><input
+            type="text" id="search-city" placeholder="Город"><label class="checkbox-row"><input type="checkbox"
+              id="search-online"> Только онлайн</label><button id="btn-search-submit"
+            class="btn btn-primary btn-block">🔍 Искать</button></div>
+        <div class="search-results" id="search-results"></div>
+      </div>
+    </div>
+  </div>
+  <div class="modal hidden" id="modal-status">
+    <div class="modal-content">
+      <div class="modal-header"><button class="modal-back">←</button>
+        <h2>Статус</h2><button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body"><label>Статус <div class="select-with-icon"><span id="status-preview-icon"
+              class="status-icon"></span><select id="status-select">
+              <option value="ONLINE">Online</option>
+              <option value="AWAY">Away</option>
+              <option value="DND">Do Not Disturb</option>
+              <option value="NA">Not Available</option>
+              <option value="FREE">Free for Chat</option>
+            </select></div></label>
+        <h3>xStatus</h3>
+        <div class="select-with-icon"><span id="xstatus-preview-icon" class="xstatus-icon"></span><select
+            id="xstatus-select">
+            <option>— Нет —</option>
+          </select></div><input type="text" id="xstatus-title" placeholder="Заголовок xStatus"><input type="text"
+          id="xstatus-desc" placeholder="Описание xStatus">
+      </div>
+      <div class="modal-footer"><button id="btn-save-status" class="btn btn-primary">Применить</button></div>
+    </div>
+  </div>
+  <div class="modal hidden" id="modal-auth">
+    <div class="modal-content">
+      <div class="modal-header"><button class="modal-back">←</button>
+        <h2>Запрос авторизации</h2><button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body" id="auth-body"></div>
+      <div class="modal-footer"><button id="btn-auth-grant" class="btn btn-primary">✅ Разрешить</button><button
+          id="btn-auth-deny" class="btn btn-secondary">❌ Отклонить</button></div>
+    </div>
+  </div>
+  <div class="modal hidden" id="modal-add-contact">
+    <div class="modal-content">
+      <div class="modal-header"><button class="modal-back">←</button>
+        <h2>Добавить контакт</h2><button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body"><input type="text" id="add-uin" placeholder="UIN"><input type="text" id="add-nick"
+          placeholder="Ник (необязательно)"><select id="add-group"></select>
+        <p class="hint-text">Если контакту требуется авторизация, запрос будет отправлен автоматически.</p>
+      </div>
+      <div class="modal-footer"><button id="btn-add-contact-submit" class="btn btn-primary">Добавить</button></div>
+    </div>
+  </div>
+  <div class="modal hidden" id="modal-move-contact">
+    <div class="modal-content">
+      <div class="modal-header"><button class="modal-back">←</button>
+        <h2>Переместить в группу</h2><button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body"><select id="move-group"></select></div>
+      <div class="modal-footer"><button id="btn-move-contact-submit" class="btn btn-primary">Переместить</button></div>
+    </div>
+  </div>
+  <div class="modal hidden" id="modal-register">
+    <div class="modal-content">
+      <div class="modal-header"><button class="modal-back">←</button>
+        <h2>Регистрация нового UIN</h2><button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body"><input type="password" id="reg-password" placeholder="Пароль для нового UIN"
+          autocomplete="new-password"><input type="password" id="reg-password2" placeholder="Повторите пароль"
+          autocomplete="new-password">
+        <p class="hint-text" id="reg-captcha-question">Загрузка проверочного вопроса…</p><input type="text"
+          id="reg-captcha-answer" placeholder="Ваш ответ" autocomplete="off" inputmode="numeric">
+        <p class="hint-text">Сервер сам выдаст новый номер (UIN). Учтите: эта регистрация не проходит проверку капчей
+          самого ICQ-сервера — если ваш сервер её требует, попытка завершится ошибкой сервера.</p>
+        <div id="reg-result" class="reg-result"></div>
+      </div>
+      <div class="modal-footer"><button id="btn-register-submit" class="btn btn-primary">Зарегистрировать</button></div>
+    </div>
+  </div>
+  <div class="modal hidden" id="modal-settings">
+    <div class="modal-content">
+      <div class="modal-header"><button class="modal-back">←</button>
+        <h2>Настройки</h2><button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <section class="settings-section">
+          <h3>Оформление</h3><label class="settings-row"><span>Размер шрифта в чатах</span>
+            <div class="font-size-control"><input type="range" id="setting-font-size" min="12" max="20" step="1"
+                value="14"><span id="setting-font-size-value">14px</span></div>
+          </label>
+        </section>
+        <section class="settings-section">
+          <h3>Сообщения</h3>
+          <div class="settings-row"><span>Отправка сообщения</span>
+            <div class="radio-group"><label class="radio-label"><input type="radio" name="setting-send-mode"
+                  value="ctrlenter"><span>Ctrl+Enter</span></label><label class="radio-label"><input type="radio"
+                  name="setting-send-mode" value="enter"><span>Enter</span></label></div>
+          </div>
+        </section>
+        <section class="settings-section">
+          <h3>Уведомления</h3><label class="settings-row"><span>Звук на входящие сообщения</span><input type="checkbox"
+              id="setting-notif-sound"></label><label class="settings-row"><span>Браузерные уведомления</span><input
+              type="checkbox" id="setting-notif-browser"></label>
+          <div class="settings-row" id="notif-permission-row"><span>Разрешение браузера</span><button
+              id="btn-notif-permission" class="btn btn-secondary">Разрешить уведомления</button></div>
+          <p class="settings-hint">Для конкретного собеседника звук и уведомления можно отключить отдельно — правой
+            кнопкой по контакту в списке.</p>
+        </section>
+        <section class="settings-section">
+          <h3>Смена пароля</h3><input type="password" id="change-pw-current" placeholder="Текущий пароль"
+            autocomplete="current-password"><input type="password" id="change-pw-new" placeholder="Новый пароль"
+            autocomplete="new-password"><input type="password" id="change-pw-new2" placeholder="Повторите новый пароль"
+            autocomplete="new-password"><button id="btn-change-password" class="btn btn-secondary btn-block">🔑 Сменить
+            пароль</button>
+          <div id="change-pw-result" class="reg-result"></div>
+        </section>
+      </div>
+      <div class="modal-footer"><button id="btn-settings-done" class="btn btn-primary">Готово</button></div>
+    </div>
+  </div>
+  <div class="modal hidden" id="modal-generic">
+    <div class="modal-content modal-generic-content">
+      <div class="modal-header">
+        <h2 id="generic-modal-title">Подтверждение</h2>
+      </div>
+      <div class="modal-body">
+        <p id="generic-modal-message"></p><input type="text" id="generic-modal-input" class="hidden">
+      </div>
+      <div class="modal-footer"><button id="generic-modal-cancel" class="btn btn-secondary">Отмена</button><button
+          id="generic-modal-ok" class="btn btn-primary">ОК</button></div>
+    </div>
+  </div>
+  <div class="context-menu hidden" id="context-menu">
+    <div class="context-item" data-action="info">👤 Анкета</div>
+    <div class="context-item" data-action="rename">✏️ Переименовать</div>
+    <div class="context-item" data-action="move">📁 Переместить</div>
+    <div class="context-item" data-action="remove">🗑️ Удалить</div>
+    <div class="context-item" data-action="request-auth">🔐 Запросить авторизацию</div>
+    <div class="context-item" data-action="toggle-mute">🔕 Без звука и уведомлений</div>
+  </div>
+  <div class="toast-container" id="toast-container"></div>
+  <div class="reconnect-banner hidden" id="reconnect-banner"><span>Соединение потеряно</span><button
+      id="btn-reconnect-now" class="btn">Переподключиться</button></div>
+  <script src="/static/app.js"></script>
+</body>
+
+</html>
