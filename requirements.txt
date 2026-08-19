@@ -1,5 +1,5 @@
 python-multipart
 fastapi
-uvicorn
+uvicorn[standard]
 Pillow
 python-dotenv
